@@ -7,7 +7,7 @@ pub struct Store {
 
 impl Store {
     pub fn new(path: &str) -> Self {
-        let mut db = PickleDb::new(path, PickleDbDumpPolicy::AutoDump, SerializationMethod::Json);
+        let db = PickleDb::new(path, PickleDbDumpPolicy::AutoDump, SerializationMethod::Json);
         Self { db }
     }
     pub fn set(&mut self, id: &str, value: &str) -> Result<()> {

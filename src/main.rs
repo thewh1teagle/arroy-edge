@@ -37,7 +37,7 @@ fn main() -> Result<()> {
                 let id = id.as_u128() as u32;
                 log::debug!("vecotr length is {}", vector.len());
                 log::debug!("config vector length is {}", config::VECTOR_DIMENSION);
-                engine.insert(id, &vector)?;
+                engine.upsert(id, &vector)?;
                 db.set(&id.to_string(), &text)?;
                 log::debug!("Added text: {}", text);
             }

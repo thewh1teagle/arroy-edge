@@ -35,7 +35,7 @@ impl VectorStore {
         })
     }
 
-    pub fn insert(&self, id: u32, vector: &[f32]) -> Result<()> {
+    pub fn upsert(&self, id: u32, vector: &[f32]) -> Result<()> {
         log::debug!("create wtxn");
         let mut wtxn = self.env.write_txn()?;
         log::debug!("create writer");
@@ -51,14 +51,6 @@ impl VectorStore {
         Ok(())
     }
 
-    pub fn update(&self, id: u32, vector: &[f32]) -> Result<()> {
-        let mut wtxn = self.env.write_txn()?;
-        let writer = Writer::<DotProduct>::new(self.db, 0, self.dimension)?;
-        self.remove(id)?;
-        self.insert(id, vector)?;
-        Ok(())
-    }
-
     pub fn remove(&self, id: u32) -> Result<()> {
         let mut wtxn = self.env.write_txn()?;
         let writer = Writer::<DotProduct>::new(self.db, 0, self.dimension)?;
@@ -70,9 +62,8 @@ impl VectorStore {
     }
 
     pub fn find(&self, vector: &[f32]) -> Result<Vec<(u32, f32)>> {
-        let wtxn = self.env.write_txn()?;
         let rtxn = self.env.read_txn()?;
-        let reader = Reader::open(&wtxn, 0, self.db)?;
+        let reader = Reader::open(&rtxn, 0, self.db)?;
         let vectors = reader.nns_by_vector(&rtxn, vector, 1, None, None)?;
         Ok(vectors)
     }
@@ -81,7 +72,6 @@ impl VectorStore {
 
 #[cfg(test)]
 mod tests {
-    use crate::config;
 
     use super::*;
 
@@ -96,7 +86,7 @@ mod tests {
         // Test insert
         let id = 1;
         let vector = vec![1.0, 2.0, 3.0];
-        engine.insert(id, &vector)?;
+        engine.upsert(id, &vector)?;
 
         // Test search
         let search_result = engine.find(&vector)?;
