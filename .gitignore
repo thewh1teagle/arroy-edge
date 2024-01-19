@@ -1,0 +1,6 @@
+target/
+.test_db
+.db
+.db_test
+.db_vector
+.env
