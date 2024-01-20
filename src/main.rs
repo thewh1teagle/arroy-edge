@@ -26,6 +26,12 @@ enum Command {
 
     /// Search text from pharse
     Search { text: String },
+
+    /// View values in database
+    View { },
+
+    /// Remove value in database
+    Remove { id: String },
 }
 
 fn main() -> Result<()> {
@@ -37,8 +43,8 @@ fn main() -> Result<()> {
     let api_key = std::env::var("OPENAI_TOKEN")?;
     log::debug!("OPENAI_TOKEN is {api_key}");
     let mut gpt = gpt::Gpt::try_create(api_key)?;
-    let engine = VectorStore::try_create(config::VECTOR_DB_PATH, config::VECTOR_DIMENSION)?;
-    let mut db = store::Store::new(config::DB_PATH);
+    let db_vector = VectorStore::try_create(config::VECTOR_DB_PATH, config::VECTOR_DIMENSION)?;
+    let mut db = store::Store::try_create(config::DB_PATH)?;
 
     match args.action {
         Command::Add { text } => {
@@ -47,25 +53,44 @@ fn main() -> Result<()> {
             let id = id.as_u128() as u32;
             log::debug!("vecotr length is {}", vector.len());
             log::debug!("config vector length is {}", config::VECTOR_DIMENSION);
-            engine.upsert(id, &vector)?;
+            db_vector.upsert(id, &vector)?;
             db.set(&id.to_string(), &text)?;
             log::debug!("Added text: {}", text);
-            println!("✅ Saved");
+            println!("✅ Saved {id}");
         }
         Command::Search { text } => {
             let search_vector = gpt.create_vectors(&text)?;
             // Handle searching text
-            let result = engine.find(&search_vector)?;
+            let result = db_vector.find(&search_vector)?;
             let first = result.first().context("empty result")?;
             log::trace!("found first result: {result:?}");
             log::debug!("found id {}", first.0);
             let stored_value = db.get(first.0.to_string())?;
             match stored_value  {
                 Some(val) => {
-                    println!("✅ Found: {val}")
+                    println!("✅ Found: {val}");
                 }
                 _ => {
                     println!("❌ Not found!");
+                }
+            }
+        },
+        Command::Remove { id } => {
+            db.remove(id.clone())?;
+            db_vector.remove(id.parse::<u32>()?)?;
+            println!("✅ Removed {id}");
+        },
+        Command::View {  } => {
+            let data = db.all()?;
+            match data.len() {
+                0 => {
+                    println!("🚫 No records found");
+                },
+                _ => {
+                    for (key, val) in data {
+                        println!("🆔: {key}");
+                        println!("📄: {}", val.unwrap_or("[🔒 EMPTY]".to_string()));
+                    }
                 }
             }
         }
