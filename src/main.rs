@@ -27,11 +27,17 @@ enum Command {
     /// Search text from pharse
     Search { text: String },
 
+    /// Ask ChatGPT with local context
+    Ask { question: String },
+
     /// View values in database
     View { },
 
     /// Remove value in database
     Remove { id: String },
+
+    /// Clear databases
+    Clear {  },
 }
 
 fn main() -> Result<()> {
@@ -40,7 +46,7 @@ fn main() -> Result<()> {
     log::debug!("App started");
     let args: Args = Args::parse();
 
-    let api_key = std::env::var("OPENAI_TOKEN")?;
+    let api_key = std::env::var("OPENAI_API_KEY")?;
     log::debug!("OPENAI_TOKEN is {api_key}");
     let mut gpt = gpt::Gpt::try_create(api_key)?;
     let db_vector = VectorStore::try_create(config::VECTOR_DB_PATH, config::VECTOR_DIMENSION)?;
@@ -93,6 +99,25 @@ fn main() -> Result<()> {
                     }
                 }
             }
+        },
+        Command::Ask { question } => {
+            let search_vector = gpt.create_vectors(&question)?;
+            // Handle searching text
+            let result = db_vector.find(&search_vector)?;
+            let first = result.first().context("empty result")?;
+            log::trace!("found first result: {result:?}");
+            log::debug!("found id {}", first.0);
+            let context = db.get(first.0.to_string())?;
+            let answer = gpt.ask(question, context.clone())?;
+            if let Some(context) = context {
+                println!("🔍 Found relevant contenxt: {}", &context);
+            }
+            println!("✅ Answer: {}", answer);
+        },
+        Command::Clear { } => {
+            db.clear()?;
+            db_vector.clear()?;
+            println!("✅ Databases cleared");
         }
     }
     Ok(())

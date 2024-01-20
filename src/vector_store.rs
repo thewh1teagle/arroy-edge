@@ -61,6 +61,16 @@ impl VectorStore {
         Ok(())
     }
 
+    pub fn clear(&self) -> Result<()> {
+        let mut wtxn = self.env.write_txn()?;
+        let writer = Writer::<DotProduct>::new(self.db, 0, self.dimension)?;
+        writer.clear(&mut wtxn)?;
+        let mut rng = StdRng::seed_from_u64(0);
+        writer.build(&mut wtxn, &mut rng, None)?;
+        wtxn.commit()?;
+        Ok(())
+    }
+
     pub fn find(&self, vector: &[f32]) -> Result<Vec<(u32, f32)>> {
         let rtxn = self.env.read_txn()?;
         let reader = Reader::open(&rtxn, 0, self.db)?;

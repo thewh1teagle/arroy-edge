@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
-use anyhow::Result;
+use anyhow::{Result, Ok};
 
 pub struct Store {
     db: PickleDb
@@ -35,6 +35,14 @@ impl Store {
 
     pub fn remove(&mut self, id: String) -> Result<()> {
         self.db.rem(&id)?;
+        Ok(())
+    }
+
+    pub fn clear(&mut self) -> Result<()> {
+        let keys: Vec<String> = self.db.iter().map(|kv| kv.get_key().to_owned()).collect();
+        for key in keys {
+            self.db.rem(&key)?;
+        }
         Ok(())
     }
 

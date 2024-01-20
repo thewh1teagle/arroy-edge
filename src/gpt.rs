@@ -18,10 +18,35 @@ impl Gpt {
         let token_value = header::HeaderValue::from_str(&format!("Bearer {}", api_key))?;
         default_headers.insert("AUTHORIZATION", token_value);
         let client = Client::builder()
-            .timeout(Duration::from_secs(5))
+            .timeout(Duration::from_secs(config::REQUEST_TIMEOUT))
             .default_headers(default_headers)
             .build()?;
         Ok(Gpt { client })
+    }
+
+    pub fn ask(&mut self, question: String, context: Option<String>) -> Result<String> {
+        let content = format!("You are a helpful assistant. You will be given a context info, it may be relevant and it may not. Try help the user.\n\nContext: \"{}\"\n\nPrompt:{}", context.unwrap_or("No context".into()), question);
+        let body = serde_json::json!({
+            "model": config::COMPLETION_MODEL_NAME,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": content
+                }
+            ]
+        });
+        log::debug!("request body: {}", serde_json::to_string_pretty(&body)?);
+        let resp = self.client
+            .post(config::COMPLETION_API_URL)
+            .json(&body)
+            .send()?;
+        let data: serde_json::Value = resp.json()?;
+        log::trace!("resp data {data:?}");
+        let choices = data["choices"].as_array().context("No choices found")?;
+        let first = choices.first().context("empty choices")?;
+        let message = &first["message"];
+        let content = message["content"].as_str().context("content is not string inside message")?;
+        Ok(content.to_string())
     }
 
     pub fn create_vectors(&mut self, input: &str) -> Result<Vec<f32>> {
@@ -32,7 +57,7 @@ impl Gpt {
         );
         let body = serde_json::json!({
             "input": input,
-            "model": config::MODEL_NAME
+            "model": config::EMBEDDING_MODEL_NAME
         });
         let resp = self
             .client
