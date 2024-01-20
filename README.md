@@ -15,3 +15,17 @@ cargo build --release
 2. Copy `.example.env` to `.env` and paste the key
 3. Execute the program, add some inputs and search
 
+## Example
+```console
+$ ./arroy-edge add "I like banana"
+✅ Saved 2680824772
+
+$ ./arroy-edge add "The most loved animal in the world is the dog."
+✅ Saved 673299976
+
+$ ./arroy-edge search "Do you know some loved animal?"
+✅ Found: The most loved animal in the world is the dog.
+
+$ ./arroy-edge search "What do you like?"
+✅ Found: I like banana
+```
