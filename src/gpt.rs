@@ -40,6 +40,7 @@ impl Gpt {
             .post(config::COMPLETION_API_URL)
             .json(&body)
             .send()?;
+        resp.error_for_status_ref()?;
         let data: serde_json::Value = resp.json()?;
         log::trace!("resp data {data:?}");
         let choices = data["choices"].as_array().context("No choices found")?;
@@ -64,6 +65,7 @@ impl Gpt {
             .post(config::EMBEDDING_API_URL)
             .json(&body)
             .send()?;
+        resp.error_for_status_ref()?;
         let data: serde_json::Value = resp.json()?;
         log::debug!("resp: {data:?}");
         let data: &Vec<serde_json::Value> =
