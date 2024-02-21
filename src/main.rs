@@ -116,7 +116,6 @@ fn main() -> Result<()> {
         },
         Command::Clear { } => {
             db.clear()?;
-            db_vector.clear()?;
             println!("✅ Databases cleared");
         }
     }
